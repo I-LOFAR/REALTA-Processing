@@ -44,6 +44,11 @@ def main():
         os.makedirs(target_dir, exist_ok=True)
 
         dest_path = os.path.join(target_dir, os.path.basename(fil))
+        # check if alreadu in dest_path
+        if os.path.abspath(fil) == os.path.abspath(dest_path):
+            # print(f"{fil} is already in the correct location.")
+            continue
+        
         os.rename(fil, dest_path)
         # print(f"Moved {fil} to {dest_path}")
 
