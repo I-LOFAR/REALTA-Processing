@@ -5,7 +5,6 @@ from datetime import datetime
 
 def main():
     volt_df = pd.read_csv('./file-list/REALTA-Voltage-Files.csv')
-    print(volt_df.keys())
     volt_df = volt_df[volt_df['Header Path'] != 'Unknown']
     
     docker = (
