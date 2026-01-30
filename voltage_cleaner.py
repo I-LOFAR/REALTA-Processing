@@ -21,18 +21,26 @@ def grab_time(logfile):
     
     return None 
 
+def expected_size(nbit, obs_time, nchan=3904, tsamp=0.00065536):
+    
+            nsamps = obs_time / tsamp
+            nbytes = nbit / 8
+
+            size_bytes = nchan * nsamps * nbytes
+            return size_bytes / (1024**3)
+
 def main():
 
-    volt_df = pd.read_csv('./file-list/REALTA-Voltage-Files.csv')
-    fil_df = pd.read_csv('./file-list/REALTA-Observation-Files.csv')
+    volt_df = pd.read_csv('./csv_files/REALTA-Voltage-Files.csv')
+    fil_df = pd.read_csv('./csv_files/REALTA-Observation-Files.csv')
+    sched_df = pd.read_csv('./csv_files/REALTA-Sched-Metadata.csv')
 
     fil_mjd = fil_df['time_mjd'].dropna()
     fil_mjd = np.array(fil_mjd.tolist())
     fil_mjd = np.where(fil_mjd == 'hdr error', 10, fil_mjd)
     fil_mjd = fil_mjd.astype(float)
-
-  
-    print(fil_mjd)
+    
+    sched_strtdates = sched_df['start'] #format YYYY-MM-DDTHH:MM
 
     # for each voltage mjd see if there is a filterbank within 10 (1e-4) seconds
     matches = []
@@ -45,22 +53,54 @@ def main():
             for idx in close_idxs:
                 fil_details = fil_df.iloc[idx]
                 volt_path = row['Path']
-                log_files = glob(volt_path + '/*.log')
-                if len(log_files) > 0:
-                    log_path = log_files[0]
-
-                    try: 
-                        run_time = grab_time(log_path)
-                        print(run_time/60)
-                        print(fil_details['tobs_min'])
+                print(f"\nVoltage File Path: {volt_path}")
+                print(f"Voltage Size (GB): {row['Total Size (GB)']}")
+                print(f"Lane Count: {row['Lane Count']}")
+                print(f"Voltage Date: {row['Date']}")
+                
+                fil_path = fil_details['filename']
+                fil_gb = fil_details['size_gb']
+                fil_tobs = float(fil_details['tobs_min'])
+                fil_utc = fil_details['time_utc'] #format YYYY-MM-DDTHH:MM:SS
+                
+            
+                print(f"\nCorresponding .fil file: {fil_path}")
+                print(f"Observation Time (min): {fil_tobs}")
+                print(f"Size (GB): {fil_gb}")
+                print(f"Expected 8-bit Size (GB): {expected_size(8, fil_tobs*60):.2f}")
+                print(f"Expected 32-bit Size (GB): {expected_size(32, fil_tobs*60):.2f}")
+                
+                # find matching schedule entry
+                fil_start = fil_utc[:16]  # Truncate to YYYY-MM-DDTHH:MM
+                sched_match = sched_strtdates[sched_strtdates.str.startswith(fil_start)]   
+                
+                if not sched_match.empty:
+                    # print row 
+                    sched_row = sched_df.iloc[sched_match.index[0]]
+                    source = sched_row['source']
+                    time = sched_row['start']
+                    dur = sched_row['duration_min']
+                    print(f"\nMatched Schedule Entry - Source: {source}, Start: {time}, Duration (min): {dur}")
                     
-                    except Exception as e:
-                        print(f"Error reading log file {log_path}: {e}")
-                        continue
-
                 else:
-                    print(f"No log file found for voltage file: {volt_path}. Skipping...")
-       
+                    print("\nNo matching schedule entry found.")
+
+                    
+                # ask to delete voltages
+                user_input = input("\nDo you want to delete the corresponding voltage files? (y/n): ")
+                if user_input.lower() == 'y':
+                    # remove all .zst files in voltage path 
+                    zst_files = glob(os.path.join(volt_path, '*.zst'))
+                    for zst_file in zst_files:
+                        os.remove(zst_file)
+                        print(f"Deleted file: {zst_file}")
+                    print("All corresponding voltage files deleted.")   
+                else:
+                    print("No files were deleted.")
+                
+                print('-' * 30)
+                
+            
 
 if __name__ == "__main__":
     main()
