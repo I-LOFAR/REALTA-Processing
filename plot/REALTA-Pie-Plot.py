@@ -3,6 +3,7 @@
 
 """
 
+import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import smplotlib
@@ -20,7 +21,15 @@ def autopct_hours(values):
     return _fmt
 
 
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser()
+    p.add_argument("--from-date", dest="from_date", default=None)
+    return p.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
+
     df = pd.read_csv(CSV_PATH)
 
     df["start"] = pd.to_datetime(df["start"], errors="coerce")
@@ -30,10 +39,13 @@ def main() -> None:
         df["duration_s"] = (df["end"] - df["start"]).dt.total_seconds()
 
     df["source"] = df.get("source", pd.Series(dtype=str)).astype(str)
-    df = df.dropna(subset=["duration_s"])
+    df = df.dropna(subset=["duration_s", "start"])
     df = df[df["duration_s"] >= 0]
 
-    # Earliest observing date
+    if args.from_date is not None:
+        from_dt = pd.to_datetime(args.from_date, errors="raise")
+        df = df[df["start"] >= from_dt]
+
     earliest = df["start"].min()
     earliest_str = earliest.strftime("%Y-%m-%d")
 
@@ -48,20 +60,19 @@ def main() -> None:
     colors = []
     for lbl in labels:
         if lbl == "Other":
-            colors.append("none")        # transparent
+            colors.append("none")
         elif lbl == "Sun":
-            colors.append("tab:orange")  
+            colors.append("tab:orange")
 
-    # Plot
     fig, ax = plt.subplots()
 
-    wedges, texts, autotexts = ax.pie(
+    ax.pie(
         totals_hr.values,
         labels=labels,
         colors=colors,
         autopct=autopct_hours(totals_hr.values),
         startangle=90,
-        wedgeprops=dict(edgecolor="black", linewidth=1.2)
+        wedgeprops=dict(edgecolor="black", linewidth=1.2),
     )
 
     ax.set_title(f"I-LOFAR observing time since {earliest_str}")
@@ -70,7 +81,6 @@ def main() -> None:
     plt.tight_layout()
     plt.savefig("sun_vs_other_observing_time.png", dpi=200)
 
-    
 
 if __name__ == "__main__":
     main()
