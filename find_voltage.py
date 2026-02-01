@@ -7,13 +7,14 @@ from datetime import datetime
 def get_args():
     parser = argparse.ArgumentParser(description="Find .fil, .fil.zst and .zst files on REALTA and write their details to a .csv")
     parser.add_argument('-i', '--input', type=str, default='/mnt/ucc1_recording1/data/observations',)
-    parser.add_argument('-o', '--output', type=str, default='./file-list/REALTA-Voltage-Files.csv',)
+    parser.add_argument('-o', '--output', type=str, default='./csv_files/REALTA-Voltage-Files.csv',)
     return parser
 
 def main(): 
     
     args = get_args().parse_args()
     input_dir = args.input
+    input_dir = ['/mnt/ucc1_recording1/data/observations', '/mnt/ucc1_recording2/data/observations']
     output_csv = args.output
     hdr_mstr_path = '/mnt/ucc4_data2/data/David/hdrs'
     
@@ -21,10 +22,12 @@ def main():
     
     # grabbing folders that have voltages 
     voltage_files = []
-    for root, dirs, files in os.walk(input_dir):
-        udp_files = glob.glob(os.path.join(root, 'udp*.zst'))
-        if udp_files:
-            voltage_files.append((root, len(udp_files)))
+    for base_dir in input_dir:
+        print(f"Walking: {base_dir}")
+        for root, dirs, files in os.walk(base_dir):
+            udp_files = glob.glob(os.path.join(root, 'udp*.zst'))
+            if udp_files:
+                voltage_files.append((root, len(udp_files)))
             
     # find .sigprochdr file in subdirs of hdr master
     hdr_files = []; hdr_sources = [] 
