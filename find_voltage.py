@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os 
 import glob 
 import argparse 
@@ -7,7 +8,7 @@ from datetime import datetime
 def get_args():
     parser = argparse.ArgumentParser(description="Find .fil, .fil.zst and .zst files on REALTA and write their details to a .csv")
     parser.add_argument('-i', '--input', type=str, default='/mnt/ucc1_recording1/data/observations',)
-    parser.add_argument('-o', '--output', type=str, default='./csv_files/REALTA-Voltage-Files.csv',)
+    parser.add_argument('-o', '--output', type=str, default='/mnt/ucc4_data2/data/Owen/software/REALTA-Processing/csv_files/REALTA-Voltage-Files.csv',)
     return parser
 
 def main(): 
